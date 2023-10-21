@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using Microsoft.Maui.Controls.PlatformConfiguration;
+using System.Threading.Tasks;
 
 namespace SyncoStronbo.Light {
     internal class LightController {
@@ -22,6 +23,7 @@ namespace SyncoStronbo.Light {
         }
 
         private LightController() {
+
             state = false;
             start = false;
             delay_ticks = 1000 * 10000;
@@ -31,7 +33,20 @@ namespace SyncoStronbo.Light {
 
         }
 
-        public void Start() {
+        public async void Start() {
+
+            PermissionStatus flashPermision = await Permissions.CheckStatusAsync<Permissions.Flashlight>();
+
+            if (flashPermision != PermissionStatus.Granted){
+                flashPermision = await Permissions.RequestAsync<Permissions.Flashlight>();
+            }
+
+            if (flashPermision != PermissionStatus.Granted)
+            {
+                start = false;
+                return;
+            }
+
             start = true;
         }
 
