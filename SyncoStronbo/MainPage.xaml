@@ -38,8 +38,40 @@
                 Clicked="OnCounterClicked"
                 HorizontalOptions="Center" />
 
-            <Slider x:Name="audioSlider" Minimum="0" Maximum="100" Value="0"/>
 
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"  />
+                    <ColumnDefinition Width="5*" />
+                </Grid.ColumnDefinitions>
+                
+                <Label Grid.Column="0" Text="Sensitivity"  />
+                <Slider Grid.Column="1" x:Name="sensitivitySlider" Minimum="0" Maximum="500" Value="100" ValueChanged="OnsensitivitySliderChanged" RotationX="0" RotationY="0" />
+            </Grid>
+
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"  />
+                    <ColumnDefinition Width="5*" />
+                </Grid.ColumnDefinitions>
+
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+
+                <Label Grid.Column="0" Grid.Row="0" Text="Low"  />
+                <Label Grid.Column="0" Grid.Row="1" Text="Mid"  />
+                <Label Grid.Column="0" Grid.Row="2" Text="High" />
+
+                <Slider Grid.Column="1" Grid.Row="0" HorizontalOptions="Fill" x:Name="lowAudioSlider" Minimum="0" Maximum="100" Value="0"/>
+                <Slider Grid.Column="1" Grid.Row="1" HorizontalOptions="Fill" x:Name="midAudioSlider" Minimum="0" Maximum="100" Value="0"/>
+                <Slider Grid.Column="1" Grid.Row="2" HorizontalOptions="Fill" x:Name="HighAudioSlider" Minimum="0" Maximum="100" Value="0"/>
+
+            </Grid>
+            
         </VerticalStackLayout>
     </ScrollView>
 
