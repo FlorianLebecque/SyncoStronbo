@@ -1,19 +1,22 @@
-﻿using Android.Media;
+﻿using Android.Bluetooth;
+using Android.Media;
+using Android.Media.Audiofx;
 using Android.Media.Metrics;
 using SyncoStronbo.Audio;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace SyncoStronbo.Audio
 {
-    public class AudioAnalyser : IAudioAnalyser {
+    public class AudioAnalyser : FourierAnalysis,IAudioAnalyser {
 
         private bool micOk = false;
 
-        private const int SampleRate = 44100;
+        private const int SampleRate = 48000;
         private const ChannelIn ChannelConfig = ChannelIn.Mono;
         private const Android.Media.Encoding AudioFormat = Android.Media.Encoding.Pcm16bit;
         private int BufferSize = AudioRecord.GetMinBufferSize(SampleRate, ChannelConfig, AudioFormat);
@@ -25,19 +28,12 @@ namespace SyncoStronbo.Audio
 
         private Thread th;
 
-        private double level;
-
         public AudioAnalyser() {
-            AudioLevelChanged += AudioChanged;
 
             th = new Thread(RecordThread);
 
-            level = 0;
         }
 
-        private void AudioChanged(object sender, double e) {
-            level = e;
-        }
 
         public async void Init() {
             PermissionStatus micPermision = await Permissions.CheckStatusAsync<Permissions.Microphone>();
@@ -48,58 +44,53 @@ namespace SyncoStronbo.Audio
 
             if (micPermision != PermissionStatus.Granted) {
                 micOk = false;
+                return;
             }
 
-            audioRecord = new AudioRecord(AudioSource.Mic, SampleRate, ChannelConfig, AudioFormat, BufferSize);
+            audioRecord = new AudioRecord(AudioSource.Unprocessed, SampleRate, ChannelConfig, AudioFormat, BufferSize);
+
+            if (NoiseSuppressor.IsAvailable){
+                NoiseSuppressor.Create(audioRecord.AudioSessionId);
+            }
+
+            micOk = true;
 
             th.Start();
         }
 
         private void RecordThread() {
-            if (audioRecord.State == State.Initialized) {
+            if (audioRecord.State == Android.Media.State.Initialized) {
                 isRecording = true;
                 audioRecord.StartRecording();
 
                 byte[] buffer = new byte[BufferSize];
-                while (isRecording) {
+
+                while (isRecording && micOk) {
                     audioRecord.Read(buffer, 0, BufferSize);
-                    double audioLevel = CalculateAudioLevel(buffer);
-                    AudioLevelChanged?.Invoke(this, audioLevel);
+
+                    var complexBuffer = new Complex[buffer.Length / 2];
+
+                    for (int i = 0; i < complexBuffer.Length; i++){
+                        double v = BitConverter.ToInt16(buffer, i * 2);
+                        complexBuffer[i] = new Complex( v/1000, 0.0);
+                    }
+
+                    GetVolume(complexBuffer, SampleRate);
                 }
             }
         }
 
-        private double CalculateAudioLevel(byte[] audioData) {
-            short[] audioSamples = new short[audioData.Length / 2];
-            Buffer.BlockCopy(audioData, 0, audioSamples, 0, audioData.Length);
-
-            double sum = 0.0;
-            foreach (short sample in audioSamples) {
-                sum += Math.Abs(sample);
-            }
-
-            double average = sum / audioSamples.Length;
-            double normalizedLevel = average / short.MaxValue; // Normalize to [0, 1]
-
-            return normalizedLevel;
-        }
-        public double GetHighLevel() {
-            return 0;
+        public double GetHighLevel(){
+            return highLevel;
         }
 
-        public double GetLowLevel() {
-            return 0;
+        public double GetMidLevel(){
+            return midLevel;
         }
 
-        public double GetMidLevel() {
-
-            if (level < 0) level = 0;
-            if (level > 1) level = 1;
-
-            return level;
-
+        public double GetLowLevel(){
+            return lowLevel;
         }
 
-       
     }
 }

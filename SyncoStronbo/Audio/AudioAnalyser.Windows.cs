@@ -1,74 +1,62 @@
-﻿using NAudio.Wave;
-using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using NAudio.CoreAudioApi;
+using NAudio.Wave;
+using System.Numerics;
+using System.Text.RegularExpressions;
 
 namespace SyncoStronbo.Audio {
-    public class AudioAnalyser : IAudioAnalyser {
-        private WaveInEvent waveIn;
-        private double maxLevel;
+    public class AudioAnalyser : FourierAnalysis, IAudioAnalyser
+    {
 
 
-        private bool micOk = false;
 
-        public async void Init() {
-            PermissionStatus micPermision = await Permissions.CheckStatusAsync<Permissions.Microphone>();
+        public void Init() {
+            var deviceEnumerator = new MMDeviceEnumerator();
+            var defaultCaptureDevice = deviceEnumerator.GetDefaultAudioEndpoint(DataFlow.Capture, Role.Multimedia);
+            
 
-            if(micPermision != PermissionStatus.Granted) {
-                micPermision = await Permissions.RequestAsync<Permissions.Microphone>();
-            }
+            var capture = new WasapiCapture(defaultCaptureDevice);
+                        
 
-            if(micPermision != PermissionStatus.Granted) {
-                micOk = false;
-            }
+            capture.DataAvailable += AnalyseSound;
 
-            micOk = true;
+            capture.StartRecording();
 
-            waveIn = new WaveInEvent();
-
-            waveIn.DataAvailable += WaveIn_DataAvailable;
-
-            waveIn.StartRecording();
-
-            maxLevel = 0.0;
         }
 
-        private void WaveIn_DataAvailable(object sender, WaveInEventArgs e) {
-            byte[] buffer = e.Buffer;
-            int bytesRead = e.BytesRecorded;
-            short max = 0;
 
-            for (int index = 0; index < bytesRead; index += 2) {
-                short sample = (short)((buffer[index + 1] << 8) | buffer[index]);
-                if (sample > max) {
-                    max = sample;
-                }
+        private void AnalyseSound(Object sender, WaveInEventArgs e){
+            
+            float[] buffer = new float[e.Buffer.Length / 4]; // Assuming 32-bit audio
+
+            for (int i = 0; i < buffer.Length; i++)
+            {
+                buffer[i] = BitConverter.ToSingle(e.Buffer, i * 4);
             }
 
-            double level = (max / 32768.0); // Normalize to the range [0, 1]
-            maxLevel = level;
+            // Convert the float array to Complex
+            var complexBuffer = new Complex[buffer.Length];
+            for (int i = 0; i < buffer.Length; i++)
+            {
+                complexBuffer[i] = new Complex(buffer[i], 0.0);
+            }
+
+
+
+            GetVolume(complexBuffer, ((WasapiCapture)sender).WaveFormat.SampleRate);
         }
+
+        
 
         public double GetHighLevel() {
-            throw new NotImplementedException();
+            return highLevel;
         }
 
         public double GetMidLevel() {
-            if (!micOk) {
-                return 0;
-            }
-
-            if (maxLevel < 0.0) maxLevel = 0.0;
-            if (maxLevel > 1.0) maxLevel = 1.0;
-
-            return maxLevel;
+            return midLevel;
         }
 
         public double GetLowLevel() {
-            throw new NotImplementedException();
+            return lowLevel;
         }
     }
 }
