@@ -7,19 +7,19 @@ namespace SyncoStronbo {
     public partial class MainPage : ContentPage {
         bool state = false;
 
-        IAudioAnalyser audioAnalyser;
+        readonly IAudioAnalyser audioAnalyser;
 
         public MainPage() {
             
             audioAnalyser = new AudioAnalyser();
             audioAnalyser.Init();
             
-            BackgroundWorker backgroundWorker = new BackgroundWorker();
+            BackgroundWorker backgroundWorker = new();
 
             backgroundWorker.DoWork += BackgroundWorker_DoWork;
             
             backgroundWorker.RunWorkerAsync();
-            backgroundWorker.RunWorkerCompleted += backgroundWorker1_RunWorkerCompleted;
+            backgroundWorker.RunWorkerCompleted += BackgroundWorker1_RunWorkerCompleted;
             
             InitializeComponent();
         }
@@ -28,7 +28,7 @@ namespace SyncoStronbo {
             FourierAnalysis.sensitivity = (double)(sensitivitySlider.Value/100);
         }
 
-        private void backgroundWorker1_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e) {
+        private void BackgroundWorker1_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e) {
 
             lowAudioSlider.Value = ((double[])e.Result)[0];
             midAudioSlider.Value = ((double[])e.Result)[1];

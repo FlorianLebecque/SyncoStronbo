@@ -19,14 +19,14 @@ namespace SyncoStronbo.Audio
         private const int SampleRate = 48000;
         private const ChannelIn ChannelConfig = ChannelIn.Mono;
         private const Android.Media.Encoding AudioFormat = Android.Media.Encoding.Pcm16bit;
-        private int BufferSize = AudioRecord.GetMinBufferSize(SampleRate, ChannelConfig, AudioFormat);
+        private readonly int BufferSize = AudioRecord.GetMinBufferSize(SampleRate, ChannelConfig, AudioFormat);
 
         private AudioRecord audioRecord;
         private bool isRecording;
         public event EventHandler<double> AudioLevelChanged;
 
 
-        private Thread th;
+        private readonly Thread th;
 
         public AudioAnalyser() {
 
